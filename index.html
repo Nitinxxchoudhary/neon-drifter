@@ -368,8 +368,13 @@
             const groundMat = new THREE.MeshBasicMaterial({ color: 0x0c0d12 });
             const ground = new THREE.Mesh(groundGeo, groundMat);
             ground.rotation.x = -Math.PI / 2;
-            ground.position.y = -0.01;
+            ground.position.y = -0.05;
             scene.add(ground);
+
+            // Add a high-tech Synthwave Grid to the floor to provide sense of speed
+            const gridHelper = new THREE.GridHelper(8000, 400, 0x00ffcc, 0x111122);
+            gridHelper.position.y = 0;
+            scene.add(gridHelper);
 
             // 5. Build Sports Car Entity
             createVehicleEntity();
