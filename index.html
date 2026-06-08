@@ -221,12 +221,18 @@
         </div>
     </div>
 
-    <div id="drive-joystick" class="touch-node">
-        <div id="joystick-thumb"></div>
+    <div id="mobile-pedals" style="display: none; position: absolute; bottom: 30px; left: 30px; z-index: 20; gap: 15px; align-items: flex-end;">
+        <div class="circle-btn" id="btn-brake" style="background: rgba(255, 50, 50, 0.4); border-color: rgba(255,100,100,0.8); width: 60px; height: 60px;">BRAKE</div>
+        <div class="circle-btn" id="btn-gas" style="background: rgba(50, 255, 50, 0.4); border-color: rgba(100,255,100,0.8); width: 70px; height: 90px; border-radius: 20px;">GAS</div>
     </div>
 
-    <div id="action-cluster">
-        <div class="circle-btn" id="enter-vehicle-btn">ENTER<br>CAR</div>
+    <div id="mobile-steering" style="display: none; position: absolute; bottom: 30px; right: 30px; z-index: 20; gap: 15px;">
+        <div class="circle-btn" id="btn-left" style="background: rgba(50, 150, 255, 0.4); border-color: rgba(100,200,255,0.8); font-size: 24px;">&#9664;</div>
+        <div class="circle-btn" id="btn-right" style="background: rgba(50, 150, 255, 0.4); border-color: rgba(100,200,255,0.8); font-size: 24px;">&#9654;</div>
+    </div>
+
+    <div id="action-cluster" style="bottom: 120px; right: 30px; display: none;">
+        <div class="circle-btn" id="enter-vehicle-btn" style="display: none;">ENTER<br>CAR</div>
     </div>
 
     <script>
@@ -671,40 +677,33 @@
             // Detect if mobile
             state.isMobile = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
             if (!state.isMobile) {
-                document.getElementById('drive-joystick').style.display = 'none';
+                document.getElementById('mobile-pedals').style.display = 'none';
+                document.getElementById('mobile-steering').style.display = 'none';
                 document.getElementById('action-cluster').style.display = 'none';
                 document.getElementById('pc-controls-hint').style.display = 'block';
+            } else {
+                document.getElementById('mobile-pedals').style.display = 'flex';
+                document.getElementById('mobile-steering').style.display = 'flex';
+                document.getElementById('action-cluster').style.display = 'flex';
             }
 
-            const joy = document.getElementById('drive-joystick');
-            const thumb = document.getElementById('joystick-thumb');
             const enterBtn = document.getElementById('enter-vehicle-btn');
 
-            let joyRect = joy.getBoundingClientRect();
-            let cX = joyRect.width / 2, cY = joyRect.height / 2;
+            // --- MOBILE DPAD & PEDALS ---
+            const bindBtn = (id, axis, val) => {
+                const btn = document.getElementById(id);
+                if (!btn) return;
+                const press = (e) => { e.preventDefault(); inputVector[axis] = val; };
+                const release = (e) => { e.preventDefault(); if(inputVector[axis] === val) inputVector[axis] = 0; };
+                btn.addEventListener('touchstart', press, { passive: false });
+                btn.addEventListener('touchend', release, { passive: false });
+                btn.addEventListener('touchcancel', release, { passive: false });
+            };
 
-            joy.addEventListener('touchstart', (e) => handleJoy(e), { passive: false });
-            joy.addEventListener('touchmove', (e) => handleJoy(e), { passive: false });
-            joy.addEventListener('touchend', () => {
-                inputVector.x = 0; inputVector.y = 0;
-                thumb.style.transform = 'translate(0px, 0px)';
-            });
-
-            function handleJoy(e) {
-                e.preventDefault();
-                const t = e.touches[0];
-                joyRect = joy.getBoundingClientRect();
-                let dx = t.clientX - (joyRect.left + cX);
-                let dy = t.clientY - (joyRect.top + cY);
-                let len = Math.sqrt(dx * dx + dy * dy);
-                let max = joyRect.width / 2;
-
-                if (len > max) { dx = (dx / len) * max; dy = (dy / len) * max; len = max; }
-                thumb.style.transform = `translate(${dx}px, ${dy}px)`;
-
-                inputVector.x = dx / max;
-                inputVector.y = -(dy / max);
-            }
+            bindBtn('btn-gas', 'y', 1);
+            bindBtn('btn-brake', 'y', -1);
+            bindBtn('btn-left', 'x', -1);
+            bindBtn('btn-right', 'x', 1);
 
             enterBtn.addEventListener('touchstart', (e) => {
                 e.preventDefault();
@@ -1096,6 +1095,15 @@
                 bustedTimer = 0;
                 document.getElementById('state-indicator').innerText = state.inVehicle ? "MODE: DRIVING" : "MODE: ON FOOT";
                 document.getElementById('state-indicator').style.color = "#00ff66";
+            }
+
+            const enterBtnEl = document.getElementById('enter-vehicle-btn');
+            if (enterBtnEl) {
+                if (state.inVehicle || state.nearVehicle) {
+                    enterBtnEl.style.display = 'flex';
+                } else {
+                    enterBtnEl.style.display = 'none';
+                }
             }
 
             updateParticles(delta);
