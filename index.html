@@ -1141,13 +1141,21 @@
 
             minimapCtx.restore();
 
-            minimapCtx.fillStyle = '#007aff';
+            minimapCtx.save();
+            minimapCtx.translate(cx, cy);
+            if (state.inVehicle) minimapCtx.rotate(-lookDelta.x);
+
+            minimapCtx.fillStyle = '#00ffcc';
+            minimapCtx.shadowColor = '#00ffcc';
+            minimapCtx.shadowBlur = 5;
             minimapCtx.beginPath();
-            minimapCtx.moveTo(cx, cy - 6);
-            minimapCtx.lineTo(cx - 5, cy + 5);
-            minimapCtx.lineTo(cx + 5, cy + 5);
+            minimapCtx.moveTo(0, -8);
+            minimapCtx.lineTo(-6, 6);
+            minimapCtx.lineTo(0, 3);
+            minimapCtx.lineTo(6, 6);
             minimapCtx.closePath();
             minimapCtx.fill();
+            minimapCtx.restore();
         }
 
         function onWindowResize() {
