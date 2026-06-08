@@ -225,7 +225,6 @@
 
     <div id="action-cluster">
         <div class="circle-btn" id="enter-vehicle-btn">ENTER<br>CAR</div>
-        <div class="circle-btn" id="action-primary-btn">ACTION</div>
     </div>
 
     <script>
@@ -263,7 +262,11 @@
             document.getElementById('welcome-splash').style.display = 'none';
             try {
                 if (document.documentElement.requestFullscreen) {
-                    document.documentElement.requestFullscreen();
+                    document.documentElement.requestFullscreen().then(() => {
+                        if (screen.orientation && screen.orientation.lock) {
+                            screen.orientation.lock('landscape').catch(e => console.log("Orientation lock failed", e));
+                        }
+                    });
                 }
             } catch (e) { }
             initAudio();
