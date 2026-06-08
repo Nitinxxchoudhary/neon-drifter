@@ -706,12 +706,14 @@
                 if(!state.isMobile) { e.preventDefault(); toggleVehicle(); }
             });
 
-            // FIXED MULTI-TOUCH DETECTOR SYSTEM
+            // FIXED MULTI-TOUCH DETECTOR SYSTEM (ANYWHERE ON SCREEN)
             let lastX = 0, lastY = 0, lookId = null;
             window.addEventListener('touchstart', (e) => {
+                if (e.target.closest('#drive-joystick') || e.target.closest('.circle-btn') || e.target.tagName === 'BUTTON') return;
+                
                 for (let i = 0; i < e.changedTouches.length; i++) {
                     let touch = e.changedTouches[i];
-                    if (touch.clientX > window.innerWidth / 2) {
+                    if (lookId === null) {
                         lookId = touch.identifier; lastX = touch.clientX; lastY = touch.clientY;
                     }
                 }
@@ -1035,9 +1037,11 @@
                     }
                 }
                 
-                // Track if player is pinned (cops nearby AND player is stopped)
-                if (state.inVehicle && distToTarget < 8.0 && Math.abs(vehicle.speed) < 3.0) {
-                    isPinned = true;
+                // Track if player is pinned
+                if (state.inVehicle) {
+                    if (distToTarget < 8.0 && Math.abs(vehicle.speed) < 3.0) isPinned = true;
+                } else {
+                    if (distToTarget < 3.0) isPinned = true; // Busted instantly on foot!
                 }
                 
                 cop.speed = THREE.MathUtils.clamp(cop.speed, 0, cop.maxSpeed);
