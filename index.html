@@ -39,15 +39,17 @@
 
         #minimap-card {
             position: absolute;
-            bottom: 25px;
-            left: 25px;
+            top: 20px;
+            left: 20px;
             width: 110px;
             height: 110px;
-            border: 3px solid #111;
-            border-radius: 16px;
+            border: 2px solid rgba(0, 255, 204, 0.4);
+            border-radius: 50%;
             overflow: hidden;
-            background: rgba(5, 5, 5, 0.85);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+            background: rgba(10, 15, 25, 0.3);
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+            backdrop-filter: blur(2px);
+            -webkit-backdrop-filter: blur(2px);
         }
 
         #minimap {
@@ -1090,8 +1092,8 @@
             minimapCtx.clearRect(0, 0, 110, 110);
             const cx = 55, cy = 55, scale = 0.55;
 
-            minimapCtx.fillStyle = 'rgba(10, 12, 20, 0.9)';
-            minimapCtx.fillRect(0, 0, 110, 110);
+            // Background is now handled by highly transparent CSS! No need to draw opaque rects.
+            // Minimap buildings are drawn with low opacity to allow seeing through the map.
 
             const activeX = player.pos.x;
             const activeZ = player.pos.z;
