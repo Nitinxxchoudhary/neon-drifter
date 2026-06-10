@@ -1130,9 +1130,10 @@
                 let mv = new THREE.Vector3(finalInputX, 0, finalInputY);
                 if (mv.lengthSq() > 0.01) {
                     if (window.playFootstep) window.playFootstep();
-                    mv.normalize().multiplyScalar(15.0 * delta);
-                    player.pos.add(mv);
                     player.targetRotY = Math.atan2(-finalInputX, finalInputY) + lookDelta.x;
+                    
+                    let moveDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.targetRotY);
+                    player.pos.addScaledVector(moveDir, 15.0 * delta);
                 }
 
                 rigidBodies.forEach(box => {
