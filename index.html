@@ -1290,7 +1290,7 @@
 
             minimapCtx.save();
             minimapCtx.translate(cx, cy);
-            minimapCtx.rotate(viewOrientation);
+            minimapCtx.rotate(-viewOrientation); // Negative rotation to align with top-down coordinates
 
             minimapCtx.fillStyle = 'rgba(255, 255, 255, 0.08)';
             minimapCtx.strokeStyle = 'rgba(0, 122, 255, 0.4)';
@@ -1299,22 +1299,22 @@
             rigidBodies.forEach(b => {
                 let dx = (b.x - activeX) * scale;
                 let dz = (b.z - activeZ) * scale;
-                minimapCtx.fillRect(dx - b.hw * scale, dz - b.hd * scale, b.hw * 2 * scale, b.hd * 2 * scale);
-                minimapCtx.strokeRect(dx - b.hw * scale, dz - b.hd * scale, b.hw * 2 * scale, b.hd * 2 * scale);
+                minimapCtx.fillRect(dx - b.hw * scale, -dz - b.hd * scale, b.hw * 2 * scale, b.hd * 2 * scale);
+                minimapCtx.strokeRect(dx - b.hw * scale, -dz - b.hd * scale, b.hw * 2 * scale, b.hd * 2 * scale);
             });
 
             if (!state.inVehicle) {
                 let vDx = (vehicle.pos.x - activeX) * scale;
                 let vDz = (vehicle.pos.z - activeZ) * scale;
                 minimapCtx.fillStyle = '#ffcc00';
-                minimapCtx.fillRect(vDx - 3, vDz - 3, 6, 6);
+                minimapCtx.fillRect(vDx - 3, -vDz - 3, 6, 6);
             }
 
             cops.forEach(cop => {
                 let cDx = (cop.pos.x - activeX) * scale;
                 let cDz = (cop.pos.z - activeZ) * scale;
                 minimapCtx.fillStyle = (Math.floor(clock.getElapsedTime() * 8) % 2 === 0) ? '#ff0000' : '#0000ff';
-                minimapCtx.fillRect(cDx - 2, cDz - 2, 4, 4);
+                minimapCtx.fillRect(cDx - 2, -cDz - 2, 4, 4);
             });
 
             minimapCtx.restore();
@@ -1324,9 +1324,9 @@
             
             // Rotate the player/car marker to point in its physical direction relative to the camera
             if (state.inVehicle) {
-                minimapCtx.rotate(-lookDelta.x);
+                minimapCtx.rotate(lookDelta.x);
             } else {
-                minimapCtx.rotate(player.mesh.rotation.y - lookDelta.x);
+                minimapCtx.rotate(lookDelta.x - player.mesh.rotation.y);
             }
 
             minimapCtx.fillStyle = '#00ffcc';
