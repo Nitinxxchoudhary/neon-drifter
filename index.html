@@ -36,6 +36,7 @@
             height: 100%;
             z-index: 10;
             pointer-events: none;
+            display: none; /* Hidden until game starts */
         }
 
         #minimap-card {
@@ -186,7 +187,7 @@
 
 <body>
 
-    <div id="welcome-splash" style="background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);">
+    <div id="welcome-splash" style="position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; background: rgba(10, 12, 20, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
         <h1 style="font-size: clamp(36px, 10vw, 64px); text-align: center; line-height: 1.2; max-width: 90vw; margin-bottom: 5px; letter-spacing: 5px; color: #00ffcc; text-shadow: 0 0 20px #00ffcc;">NEON DRIFTER</h1>
         <button class="neon-btn" style="background: #ff0055; box-shadow: 0 0 20px #ff0055; margin-top: 20px;" onclick="bootEngine()">PLAY NOW</button>
     </div>
@@ -255,6 +256,7 @@
         // Global State & Game Variables
         let state = { inVehicle: false, isMobile: true, nearVehicle: false };
         let isPaused = false;
+        let isCinematic = true;
         
         function togglePause() {
             if (isBusted) return;
@@ -289,6 +291,12 @@
 
         function bootEngine() {
             document.getElementById('welcome-splash').style.display = 'none';
+            document.getElementById('hud-layer').style.display = 'block';
+            isCinematic = false;
+            
+            // Re-center camera just in case
+            lookDelta.x = 0; lookDelta.y = 0;
+            
             try {
                 if (document.documentElement.requestFullscreen) {
                     document.documentElement.requestFullscreen().then(() => {
@@ -299,8 +307,6 @@
                 }
             } catch (e) { }
             initAudio();
-            init();
-            animate();
         }
 
         let audioCtx;
@@ -885,6 +891,18 @@
 
             updateWorldChunks(state.inVehicle ? vehicle.pos : player.pos);
 
+            if (isCinematic) {
+                let camAngle = time * 0.3;
+                let camDist = 20;
+                camera.position.x = vehicle.pos.x + Math.cos(camAngle) * camDist;
+                camera.position.z = vehicle.pos.z + Math.sin(camAngle) * camDist;
+                camera.position.y = vehicle.pos.y + 6;
+                camera.lookAt(vehicle.pos.x, vehicle.pos.y + 2, vehicle.pos.z);
+                
+                renderer.render(scene, camera);
+                return; // Skip physics and HUD updates during cinematic splash
+            }
+
             // Auto-center camera after 1.5 seconds of inactivity
             if (lookId === null && !isMouseDown && time - lastLookTime > 1.5) {
                 lookDelta.x = THREE.MathUtils.lerp(lookDelta.x, 0, 0.05);
@@ -1250,6 +1268,10 @@
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
         }
+
+        // --- AUTO-START CINEMATIC MODE ON LOAD ---
+        init();
+        animate();
     </script>
 </body>
 
