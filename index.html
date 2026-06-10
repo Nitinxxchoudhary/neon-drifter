@@ -994,16 +994,20 @@
 
                 let heading = new THREE.Vector3(0, 0, 1).applyAxisAngle(new THREE.Vector3(0, 1, 0), vehicle.rotY);
                 
-                if (!vehicle.isGrounded) {
+                let wasGrounded = vehicle.isGrounded;
+                vehicle.isGrounded = false; // Assume falling until a collision proves otherwise
+                
+                if (!wasGrounded && vehicle.pos.y > 1.0) {
                     stats.score += Math.floor(150 * delta);
                     document.getElementById('score-display').innerText = 'SCORE: ' + stats.score.toLocaleString();
-                    vehicle.velY -= 20 * delta; // Smoother gravity
                 }
+                
+                vehicle.velY -= 20 * delta; // Always apply gravity
                 vehicle.pos.y += vehicle.velY * delta;
                 
                 if (vehicle.pos.y <= 0.4) {
                     vehicle.pos.y = 0.4;
-                    if (!vehicle.isGrounded && vehicle.velY < -5) {
+                    if (!wasGrounded && vehicle.velY < -5) {
                         vehicle.speed = Math.min(vehicle.speed + 20, vehicle.maxSpeed);
                         // Sparks on landing
                         for(let i=0; i<8; i++) spawnExhaustParticle(vehicle.pos.clone(), new THREE.Vector3(Math.random()*6-3, Math.random()*2, Math.random()*6-3));
@@ -1049,15 +1053,16 @@
                                 pct = Math.max(0, Math.min(1, pct));
                                 let targetY = 0.4 + (pct * box.height);
                                 
-                                if (targetY > vehicle.pos.y) {
+                                if (targetY >= vehicle.pos.y - 0.5) {
                                     vehicle.pos.y = targetY;
-                                    if (Math.abs(vehicle.speed) > 15) {
+                                    vehicle.velY = 0;
+                                    vehicle.isGrounded = true;
+                                    
+                                    // Only launch if we hit the very edge of the ramp at high speed!
+                                    if (pct > 0.95 && Math.abs(vehicle.speed) > 15) {
                                         vehicle.velY = Math.abs(vehicle.speed) * 0.4;
                                         vehicle.isGrounded = false;
                                         if (window.playJumpSound) window.playJumpSound();
-                                    } else {
-                                        vehicle.velY = 0;
-                                        vehicle.isGrounded = true;
                                     }
                                 }
                             } else {
@@ -1314,7 +1319,13 @@
 
             minimapCtx.save();
             minimapCtx.translate(cx, cy);
-            if (state.inVehicle) minimapCtx.rotate(-lookDelta.x);
+            
+            // Rotate the player/car marker to point in its physical direction relative to the camera
+            if (state.inVehicle) {
+                minimapCtx.rotate(-lookDelta.x);
+            } else {
+                minimapCtx.rotate(player.rotY - lookDelta.x);
+            }
 
             minimapCtx.fillStyle = '#00ffcc';
             minimapCtx.shadowColor = '#00ffcc';
