@@ -1227,6 +1227,7 @@
                         let dZ = (cop.pos.z > box.z) ? (box.z + box.hd + cRadius) - cop.pos.z : (box.z - box.hd - cRadius) - cop.pos.z;
                         if (Math.abs(dX) < Math.abs(dZ)) cop.pos.x += dX; else cop.pos.z += dZ;
                         cop.speed *= 0.5;
+                        cop.rotY += 0.5; // Help cops spin out of walls when stuck
                     }
                 });
 
@@ -1325,7 +1326,7 @@
             if (state.inVehicle) {
                 minimapCtx.rotate(-lookDelta.x);
             } else {
-                minimapCtx.rotate(player.rotY - lookDelta.x);
+                minimapCtx.rotate(player.mesh.rotation.y - lookDelta.x);
             }
 
             minimapCtx.fillStyle = '#00ffcc';
