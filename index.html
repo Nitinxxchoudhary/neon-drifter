@@ -189,7 +189,7 @@
 
     <div id="welcome-splash" style="position: absolute; width: 100%; height: 100%; z-index: 100; display: flex; flex-direction: column; justify-content: center; align-items: center; color: white; background: rgba(10, 12, 20, 0.6); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);">
         <h1 style="font-size: clamp(36px, 10vw, 64px); text-align: center; line-height: 1.2; max-width: 90vw; margin-bottom: 5px; letter-spacing: 5px; color: #00ffcc; text-shadow: 0 0 20px #00ffcc;">NEON DRIFTER</h1>
-        <button class="neon-btn" style="background: #ff0055; box-shadow: 0 0 20px #ff0055; margin-top: 20px;" onclick="bootEngine()">PLAY NOW</button>
+        <button class="neon-btn" style="background: #ff0055; box-shadow: 0 0 20px #ff0055; margin-top: 20px;" onclick="playUIClick(); bootEngine()">PLAY NOW</button>
     </div>
 
     <a href="https://github.com/Nitinxxchoudhary" target="_blank" style="position: absolute; top: 20px; right: 20px; z-index: 1000; color: white; text-decoration: none; opacity: 0.7; transition: opacity 0.3s;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='0.7'">
@@ -199,19 +199,19 @@
     <div id="busted-splash" style="display: none; position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; flex-direction: column; justify-content: center; align-items: center; color: white;">
         <h1 style="font-size: 80px; margin: 0; color: #ff0033; text-shadow: 0 0 30px #ff0033; letter-spacing: 10px;">BUSTED</h1>
         <p id="final-score-display" style="font-family: monospace; font-size: 24px; color: #00ffaa; margin-top: 20px;">SCORE: 0</p>
-        <button class="neon-btn" style="background: #ff0033; box-shadow: 0 0 20px #ff0033;" onclick="location.reload()">RESTART</button>
+        <button class="neon-btn" style="background: #ff0033; box-shadow: 0 0 20px #ff0033;" onclick="playUIClick(); location.reload()">RESTART</button>
     </div>
 
     <div id="pause-menu" style="display: none; position: absolute; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 90; flex-direction: column; justify-content: center; align-items: center; color: white; backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px);">
         <h1 style="font-size: 60px; margin: 0; color: #00ffcc; text-shadow: 0 0 20px #00ffcc; letter-spacing: 8px;">PAUSED</h1>
-        <button class="neon-btn" style="background: #007aff; box-shadow: 0 0 20px #007aff;" onclick="togglePause()">RESUME</button>
-        <button class="neon-btn" style="background: #ff0055; box-shadow: 0 0 20px #ff0055;" onclick="location.reload()">RESTART GAME</button>
+        <button class="neon-btn" style="background: #007aff; box-shadow: 0 0 20px #007aff;" onclick="playUIClick(); togglePause()">RESUME</button>
+        <button class="neon-btn" style="background: #ff0055; box-shadow: 0 0 20px #ff0055;" onclick="playUIClick(); location.reload()">RESTART GAME</button>
     </div>
 
     <div id="canvas-container"></div>
 
     <div id="hud-layer">
-        <button id="pause-btn" style="pointer-events: auto; position: absolute; top: 20px; left: 160px; background: rgba(0,0,0,0.5); border: 2px solid #00ffcc; color: #00ffcc; border-radius: 50%; width: 45px; height: 45px; font-size: 16px; font-weight: bold; cursor: pointer; z-index: 50; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px #00ffcc; padding-bottom: 2px;" onclick="togglePause()">||</button>
+        <button id="pause-btn" style="pointer-events: auto; position: absolute; top: 20px; left: 160px; background: rgba(0,0,0,0.5); border: 2px solid #00ffcc; color: #00ffcc; border-radius: 50%; width: 45px; height: 45px; font-size: 16px; font-weight: bold; cursor: pointer; z-index: 50; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 10px #00ffcc; padding-bottom: 2px;" onclick="playUIClick(); togglePause()">||</button>
         <div id="minimap-card"><canvas id="minimap"></canvas></div>
         <div id="stats-panel">
             <span style="color: #00ffaa;" id="score-display">SCORE: 0</span>
@@ -310,33 +310,84 @@
         }
 
         let audioCtx;
+        let engineOsc, engineGain;
+        let lastStepTime = 0;
+        let lastBrakeTime = 0;
+
+        window.playUIClick = function() {
+            if (!audioCtx) return;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(1200, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        };
+
+        window.playBrakeSound = function() {
+            if (!audioCtx || audioCtx.currentTime - lastBrakeTime < 0.2) return;
+            lastBrakeTime = audioCtx.currentTime;
+            let bufferSize = audioCtx.sampleRate * 0.4;
+            let buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            let data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            
+            let noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            let filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.value = 1500;
+            let gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+            noise.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+            noise.start();
+        };
+
+        window.playFootstep = function() {
+            if (!audioCtx || audioCtx.currentTime - lastStepTime < 0.35) return;
+            lastStepTime = audioCtx.currentTime;
+            let osc = audioCtx.createOscillator();
+            let gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(60, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.15);
+        };
+
         function initAudio() {
             if (audioCtx) return;
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             
-            setInterval(() => {
-                if(isBusted || state.isMobile===false && !state.inVehicle) return; 
-                let osc = audioCtx.createOscillator();
-                let gain = audioCtx.createGain();
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(55, audioCtx.currentTime); 
-                osc.frequency.exponentialRampToValueAtTime(27.5, audioCtx.currentTime + 0.2);
-                
-                let filter = audioCtx.createBiquadFilter();
-                filter.type = 'lowpass';
-                filter.frequency.setValueAtTime(400, audioCtx.currentTime);
-                filter.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
-
-                gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-                gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                
-                osc.connect(filter);
-                filter.connect(gain);
-                gain.connect(audioCtx.destination);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.3);
-            }, 500); 
-
+            // Continuous Engine Sound
+            engineOsc = audioCtx.createOscillator();
+            engineGain = audioCtx.createGain();
+            engineOsc.type = 'sawtooth';
+            engineOsc.frequency.value = 40; // Deep idle hum
+            engineGain.gain.value = 0; // Silent until driving
+            
+            let engineFilter = audioCtx.createBiquadFilter();
+            engineFilter.type = 'lowpass';
+            engineFilter.frequency.value = 500;
+            
+            engineOsc.connect(engineFilter);
+            engineFilter.connect(engineGain);
+            engineGain.connect(audioCtx.destination);
+            engineOsc.start();
+            
+            // Legacy police siren pulse...
             setInterval(() => {
                 if (cops.length === 0 || isBusted) return;
                 let osc = audioCtx.createOscillator();
@@ -688,8 +739,9 @@
 
         // --- INPUT LOGIC (TOUCH & DESKTOP) ---
         function toggleVehicle() {
-            if (state.nearVehicle) {
-                state.inVehicle = !state.inVehicle;
+            if (window.playUIClick) window.playUIClick();
+            if (!state.nearVehicle && !state.inVehicle) return;
+            state.inVehicle = !state.inVehicle;
                 inputVector.x = 0; inputVector.y = 0; // Reset movement when switching modes
                 const enterBtn = document.getElementById('enter-vehicle-btn');
                 if (enterBtn) {
@@ -707,7 +759,6 @@
                     if (joystick) joystick.style.display = state.inVehicle ? 'none' : 'block';
                 }
             }
-        }
 
         function setupAdvancedTouchPipelines() {
             // Detect if mobile
@@ -927,11 +978,13 @@
             document.getElementById('enter-vehicle-btn').style.opacity = state.nearVehicle ? "1.0" : "0.2";
 
             if (state.inVehicle) {
-                if (Math.abs(finalInputY) > 0.05) {
-                    vehicle.speed += finalInputY * vehicle.accel * delta;
-                } else {
-                    vehicle.speed *= vehicle.friction;
+                // Acceleration & braking
+                if (finalInputY > 0) vehicle.speed += vehicle.accel * finalInputY * delta;
+                else if (finalInputY < 0) {
+                    vehicle.speed += vehicle.accel * finalInputY * 1.5 * delta;
+                    if (vehicle.speed > 10 && window.playBrakeSound) window.playBrakeSound();
                 }
+                else vehicle.speed *= vehicle.friction;
                 vehicle.speed = THREE.MathUtils.clamp(vehicle.speed, -vehicle.maxSpeed / 2, vehicle.maxSpeed);
 
                 if (Math.abs(vehicle.speed) > 1) {
@@ -1068,12 +1121,13 @@
                 camera.lookAt(vehicle.pos.clone().x, vehicle.pos.y + 1.0, vehicle.pos.z);
 
             } else {
-                if (Math.abs(finalInputX) > 0.05 || Math.abs(finalInputY) > 0.05) {
+                // On foot movement
+                let mv = new THREE.Vector3(finalInputX, 0, finalInputY);
+                if (mv.lengthSq() > 0.01) {
+                    if (window.playFootstep) window.playFootstep();
+                    mv.normalize().multiplyScalar(15.0 * delta);
+                    player.pos.add(mv);
                     player.targetRotY = Math.atan2(-finalInputX, finalInputY) + lookDelta.x;
-                    player.rotY = THREE.MathUtils.lerp(player.rotY, player.targetRotY, 0.15);
-
-                    let moveDir = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), player.targetRotY);
-                    player.pos.addScaledVector(moveDir, 8.5 * delta);
                 }
 
                 rigidBodies.forEach(box => {
@@ -1104,7 +1158,7 @@
 
                 player.mesh.visible = true;
                 player.mesh.position.copy(player.pos);
-                player.mesh.rotation.y = player.rotY;
+                player.mesh.rotation.y = THREE.MathUtils.lerp(player.mesh.rotation.y, player.targetRotY, 0.1);
 
                 let lookTarget = new THREE.Vector3(0, 4.8, 6.0).applyAxisAngle(new THREE.Vector3(0, 1, 0), lookDelta.x);
                 let idealPlayerCam = player.pos.clone().add(lookTarget);
@@ -1200,6 +1254,18 @@
 
             updateParticles(delta);
             updateAdvancedRadar();
+
+            // Update Engine Audio Pitch
+            if (typeof engineOsc !== 'undefined' && audioCtx) {
+                if (state.inVehicle && !isBusted && !isPaused && !isCinematic) {
+                    let targetFreq = 40 + (Math.abs(vehicle.speed) * 2.5);
+                    engineOsc.frequency.setTargetAtTime(targetFreq, audioCtx.currentTime, 0.1);
+                    engineGain.gain.setTargetAtTime(0.15, audioCtx.currentTime, 0.1);
+                } else {
+                    engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+                }
+            }
+
             renderer.render(scene, camera);
         }
 
